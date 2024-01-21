@@ -38,6 +38,9 @@ def get_all_messages():
 
 def get_mails_in_inbox():
     messages = get_all_messages()
+    for message in messages:
+        count = count_replies_and_update_db(message["mid"])
+        message["replies"] = count
 
     return messages
 
@@ -77,3 +80,47 @@ def get_mails_in_inbox():
 
     #                 messages.append(m)
     # return messages[1:]
+
+def count_replies_and_update_db(original_message_id):
+    # Connect to the IMAP server
+    print(f"Message ID {original_message_id}")
+    reply_count = 0
+    with imaplib.IMAP4_SSL(smtp_server) as mail:
+        # Login to the email account
+        mail.login(sender_email, password)
+
+        # Select the mailbox
+        status, messages = mail.select("inbox")
+
+        for i in range(1, int(messages[0])):
+            res, msg = mail.fetch(str(i), '(RFC822)')
+            for response in msg:
+                if isinstance(response, tuple):
+                    msg = email.message_from_bytes(response[1])
+
+                    # Check if the email is a reply to the original message
+                    references = msg.get("References", "")
+                    in_reply_to = msg.get("In-Reply-To", "")
+                    
+
+                    if original_message_id in references or original_message_id in in_reply_to:
+                        reply_count += 1
+                    print (msg["subject"])
+
+    # Update the count in the SQLite database
+    update_reply_count_in_db(original_message_id, reply_count)
+    return reply_count
+
+def update_reply_count_in_db(original_message_id, reply_count):
+    # Connect to the SQLite database
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Update the count in the mails table
+    cursor.execute('UPDATE mails SET replies = ? WHERE mid = ?', (reply_count, original_message_id))
+
+    # Commit the changes
+    conn.commit()
+
+    # Close the connection
+    conn.close()
