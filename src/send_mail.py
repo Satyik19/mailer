@@ -13,21 +13,23 @@ password = os.getenv("PASSWORD")
 
 
 def send_email(receiver_email, subject, msg):
-    html = f"""
-<html>
-<body>
-    <p>{msg}</p>
-    <img width="100px" height="100px" src="https://img.freepik.com/free-vector/realistic-hand-drawn-fuck-you-symbol_23-2148684365.jpg?w=740&t=st=1705778735~exp=1705779335~hmac=b2ba99e51f7f27d170217c8318b28beca6fda407c1c1a81959a19324222df681" alt="Tracking Pixel">
-</body>
-</html>
-"""
+    
     # Create the email message
     message = MIMEMultipart()
     message['From'] = sender_email
     message['To'] = receiver_email
     message['Subject'] = subject
-    mid = utils.make_msgid(domain="localhost")
+    mid = utils.make_msgid(domain="mailer-ok7r.onrender.com")
     message["Message-ID"] = mid
+
+    html = f"""
+<html>
+<body>
+    <p>{msg}</p>
+    <img width="100px" height="100px" src="https://mailer-ok7r.onrender.com/image?mid={mid}" alt="">
+</body>
+</html>
+"""
 
     # Attach the HTML content to the email
     message.attach(MIMEText(html, 'html'))

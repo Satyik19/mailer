@@ -1,4 +1,4 @@
-from flask import Flask, request, send_file
+from flask import Flask, request, send_file, render_template
 from src.send_mail import send_email
 from src.mail_dashboard import get_mails_in_inbox
 from src.db import init_db, get_db
@@ -9,7 +9,7 @@ app = Flask(__name__)
 init_db()
 
 
-@app.route("/send", methods=["POST"])
+@app.route("/api/send", methods=["POST"])
 def send_emails():
     data = request.get_json()
     print(data)
@@ -33,8 +33,12 @@ def send_image():
 
     return send_file("./output.png")
 
-@app.route("/", methods=["GET"])
-def hello_world():
+@app.route("/api/all", methods=["GET"])
+def get_mails():
     m = get_mails_in_inbox()
     print(m)
     return m
+
+@app.route("/")
+def home():
+    return send_file("./static/index.html")
