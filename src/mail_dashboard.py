@@ -39,8 +39,9 @@ def get_all_messages():
 def get_mails_in_inbox():
     messages = get_all_messages()
     for message in messages:
-        count = count_replies_and_update_db(message["mid"])
+        count, replies = count_replies_and_update_db(message["mid"])
         message["replies"] = count
+        message["reply"] = replies
 
     return messages
 
@@ -85,6 +86,7 @@ def count_replies_and_update_db(original_message_id):
     # Connect to the IMAP server
     print(f"Message ID {original_message_id}")
     reply_count = 0
+    replies = []
     with imaplib.IMAP4_SSL(smtp_server) as mail:
         # Login to the email account
         mail.login(sender_email, password)
@@ -105,11 +107,44 @@ def count_replies_and_update_db(original_message_id):
 
                     if original_message_id in references or original_message_id in in_reply_to:
                         reply_count += 1
+                        b = msg
+                        body = ""
+
+                        if b.is_multipart():
+                            for part in b.walk():
+                                body = part.get_payload(decode=True)
+                                if body:
+                                    soup = BeautifulSoup(body, "html.parser")
+                                    elem = soup.find("p")
+                                    if elem:
+                                        body = elem.get_text()
+                        else:
+                            body = b.get_payload(decode=True)
+                            
+                        
+                        print(msg["To"])
+                        inter_m = ""
+                        if msg["To"]:
+                            inter_m = msg["To"]
+                        else:
+                            inter_m = msg["Received"].split("\n")[2]
+                            inter_m = inter_m.split(" ")
+                            inter_m = inter_m[len(inter_m) - 1][1:-2]
+                        
+                        m = {
+                            "mid": msg["Message-ID"],
+                            "subject": msg["Subject"],
+                            "receiver": inter_m,
+                            "sender": msg["From"],
+                            "date": msg["Date"],
+                            "message": body.decode("utf-8") if type(body) == bytes else body
+                        }
+                        replies.append(m)
                     print (msg["subject"])
 
     # Update the count in the SQLite database
     update_reply_count_in_db(original_message_id, reply_count)
-    return reply_count
+    return reply_count, replies
 
 def update_reply_count_in_db(original_message_id, reply_count):
     # Connect to the SQLite database
