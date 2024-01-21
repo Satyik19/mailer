@@ -12,7 +12,7 @@ def init_db():
     db = get_db()
     db.cursor().execute("""CREATE TABLE IF NOT EXISTS mails (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        mid TEXT NOT NULL,
+        mid TEXT UNIQUE NOT NULL,
         subject TEXT NOT NULL,
         receiver TEXT NOT NULL,
         sender TEXT NOT NULL,
